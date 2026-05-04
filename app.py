@@ -4,7 +4,7 @@ from tkinter import filedialog, messagebox
 import customtkinter as ctk
 from PIL import Image
 
-from filtros import cargar_imagen, convertir_grises, procesar_imagen
+from filtros import cargar_imagen, procesar_imagen
 
 
 APP_TITLE = "Procesamiento Digital de Imagenes"
@@ -38,8 +38,7 @@ class ImageSofteningApp(ctk.CTk):
         ctk.set_default_color_theme("blue")
 
         self.ruta_imagen = None
-        self.imagen_original_pil = None
-        self.imagen_gris = None
+        self.imagen_color = None
         self.imagen_ruido = None
         self.resultado_espacial = None
         self.resultado_frecuencia = None
@@ -166,14 +165,13 @@ class ImageSofteningApp(ctk.CTk):
 
         try:
             self.ruta_imagen = ruta
-            self.imagen_original_pil = cargar_imagen(ruta)
-            self.imagen_gris = convertir_grises(self.imagen_original_pil)
+            self.imagen_color = cargar_imagen(ruta)
             self.imagen_ruido = None
             self.resultado_espacial = None
             self.resultado_frecuencia = None
 
             nombre = os.path.basename(ruta)
-            alto, ancho = self.imagen_gris.shape
+            alto, ancho = self.imagen_color.shape[:2]
             self.lbl_archivo.configure(text=f"{nombre}\n{ancho} x {alto} px")
 
             radio_maximo = max(1, min(alto, ancho) // 2)
@@ -181,7 +179,7 @@ class ImageSofteningApp(ctk.CTk):
             self.slider_radio.set(min(60, radio_maximo))
             self._actualizar_lbl_radio(self.slider_radio.get())
 
-            self._mostrar_en_panel("original", matriz_a_imagen_pil(self.imagen_gris))
+            self._mostrar_en_panel("original", matriz_a_imagen_pil(self.imagen_color))
             self._limpiar_panel("ruido")
             self._limpiar_panel("espacial")
             self._limpiar_panel("frecuencia")
@@ -194,7 +192,7 @@ class ImageSofteningApp(ctk.CTk):
         self.paneles[clave].configure(image=None, text="Sin imagen")
 
     def procesar_imagen(self):
-        if self.imagen_gris is None:
+        if self.imagen_color is None:
             messagebox.showwarning("Imagen requerida", "Primero carga una imagen.")
             return
 
@@ -207,7 +205,7 @@ class ImageSofteningApp(ctk.CTk):
             radio = int(self.slider_radio.get())
 
             self.imagen_ruido, self.resultado_espacial, self.resultado_frecuencia = procesar_imagen(
-                self.imagen_gris,
+                self.imagen_color,
                 ruido,
                 filtro,
                 radio,

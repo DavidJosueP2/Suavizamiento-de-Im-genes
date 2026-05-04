@@ -1,17 +1,17 @@
 # Image Softening
 
-Aplicacion de escritorio en Python para procesamiento digital de imagenes en escala de grises.
+Aplicacion de escritorio en Python para procesamiento digital de imagenes a color.
 
 ## Funciones
 
 - Carga una imagen desde el computador.
-- Convierte la imagen a escala de grises.
-- Agrega ruido configurable a la imagen en escala de grises.
-- Aplica filtros espaciales manuales 3x3: media, mediana y moda.
+- Trabaja con la imagen RGB a color.
+- Agrega ruido sal y pimienta configurable sobre pixeles RGB.
+- Aplica filtros espaciales manuales 3x3 por canal: media, mediana y moda.
 - Calcula la FFT 2D centrada de la imagen con ruido.
 - Aplica una mascara circular pasa bajas mediante un radio configurable.
 - Reconstruye la imagen filtrada con `ifftshift` e `ifft2`.
-- Muestra la imagen original en grises, la imagen con ruido, el resultado espacial y el resultado en campo de frecuencia.
+- Muestra la imagen original a color, la imagen con ruido, el resultado espacial y el resultado en campo de frecuencia.
 
 ## Instalacion
 
@@ -28,7 +28,7 @@ python app.py
 ## Archivos
 
 - `app.py`: interfaz grafica y barra de progreso.
-- `image_processing.py`: carga, escala de grises, ruido, filtros 3x3 y filtro pasa bajas en Fourier.
+- `filtros.py`: carga, ruido, filtros 3x3 por canal y filtro pasa bajas en Fourier.
 
 ## Restricciones implementadas
 
