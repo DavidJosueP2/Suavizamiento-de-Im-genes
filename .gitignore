@@ -27,5 +27,4 @@ htmlcov/
 Thumbs.db
 
 # Local generated files
-test_imgs/
 *.log
