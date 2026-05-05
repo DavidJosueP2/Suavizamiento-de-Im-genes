@@ -3,7 +3,7 @@ from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image
 
 from filtros import cargar_imagen, procesar_imagen, actualizar_preprocesamiento
 
@@ -17,43 +17,6 @@ def matriz_a_imagen_pil(imagen_matriz):
     if matriz.ndim == 2:
         return Image.fromarray(matriz, mode="L").convert("RGB")
     return Image.fromarray(matriz, mode="RGB")
-
-
-def histograma_a_imagen(histograma, histograma_normalizado=None, size=PANEL_IMAGE_SIZE):
-    ancho, alto = size
-    margen = 12
-    imagen = Image.new("RGB", size, "#ffffff")
-    dibujo = ImageDraw.Draw(imagen)
-    maximo = int(histograma.max()) if histograma.size else 0
-    if histograma_normalizado is not None and histograma_normalizado.size:
-        maximo = max(maximo, int(histograma_normalizado.max()))
-
-    dibujo.line((margen, alto - margen, ancho - margen, alto - margen), fill="#111827", width=1)
-    dibujo.line((margen, margen, margen, alto - margen), fill="#111827", width=1)
-
-    if maximo == 0:
-        return imagen
-
-    ancho_util = ancho - 2 * margen
-    alto_util = alto - 2 * margen
-
-    def dibujar_histograma(datos, color, desplazamiento=0):
-        for intensidad in range(256):
-            x = margen + int((intensidad / 255) * (ancho_util - 1)) + desplazamiento
-            if x < margen or x > ancho - margen:
-                continue
-            altura = int((int(datos[intensidad]) / maximo) * alto_util)
-            dibujo.line((x, alto - margen, x, alto - margen - altura), fill=color)
-
-    dibujar_histograma(histograma, "#2563eb")
-    if histograma_normalizado is not None:
-        dibujar_histograma(histograma_normalizado, "#f97316", 1)
-        dibujo.rectangle((margen + 4, margen + 4, margen + 12, margen + 10), fill="#2563eb")
-        dibujo.text((margen + 16, margen + 1), "Original", fill="#111827")
-        dibujo.rectangle((margen + 82, margen + 4, margen + 90, margen + 10), fill="#f97316")
-        dibujo.text((margen + 94, margen + 1), "Normalizado", fill="#111827")
-
-    return imagen
 
 
 def preparar_imagen_panel(imagen_pil, max_size=PANEL_IMAGE_SIZE):
@@ -168,9 +131,8 @@ class ImageSofteningApp(ctk.CTk):
         fila = self._crear_seccion(contenedor, "Seccion 1: Preprocesamiento opcional", 0)
         self._crear_panel(contenedor, "original", "Imagen original RGB", fila, 0)
         self._crear_panel(contenedor, "gris", "Escala de grises", fila, 1)
-        self._crear_panel(contenedor, "hist_comparativo", "Histograma original y normalizado", fila, 2)
-        self._crear_panel(contenedor, "normalizada", "Imagen normalizada", fila + 1, 0)
-        self._crear_panel(contenedor, "binaria", "Imagen binarizada", fila + 1, 1)
+        self._crear_panel(contenedor, "normalizada", "Imagen normalizada", fila, 2)
+        self._crear_panel(contenedor, "binaria", "Imagen binarizada", fila + 1, 0)
 
         fila = self._crear_seccion(contenedor, "Seccion 2: Ruido", fila + 2)
         self._crear_panel(contenedor, "base", "Imagen base del proceso", fila, 0)
@@ -253,9 +215,6 @@ class ImageSofteningApp(ctk.CTk):
     def _mostrar_matriz(self, clave, matriz):
         self._mostrar_en_panel(clave, matriz_a_imagen_pil(matriz))
 
-    def _mostrar_histograma(self, clave, histograma, histograma_normalizado=None):
-        self._mostrar_en_panel(clave, histograma_a_imagen(histograma, histograma_normalizado))
-
     def cargar_imagen(self):
         ruta = filedialog.askopenfilename(
             title="Seleccionar imagen",
@@ -297,7 +256,6 @@ class ImageSofteningApp(ctk.CTk):
 
         self._mostrar_matriz("original", datos["original"])
         self._mostrar_matriz("gris", datos["gris"])
-        self._mostrar_histograma("hist_comparativo", datos["histograma_original"], datos["histograma_normalizado"])
         self._mostrar_matriz("normalizada", datos["normalizada"])
         self._mostrar_matriz("binaria", datos["binaria"])
 

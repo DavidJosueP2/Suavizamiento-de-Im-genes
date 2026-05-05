@@ -6,7 +6,7 @@ Aplicacion de escritorio en Python para procesamiento digital de imagenes a colo
 
 - Carga una imagen desde el computador.
 - Trabaja con la imagen RGB a color.
-- Permite activar preprocesamiento: escala de grises, histograma, normalizacion min-max, histograma normalizado y binarizacion.
+- Permite activar preprocesamiento: escala de grises, normalizacion min-max y binarizacion.
 - Agrega ruido sal y pimienta configurable sobre la imagen base del proceso.
 - Aplica filtros espaciales manuales por canal: media, mediana y moda.
 - Permite seleccionar mascaras impares: 3x3, 5x5, 7x7, 9x9 y 11x11.
