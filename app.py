@@ -35,7 +35,7 @@ class ImageSofteningApp(ctk.CTk):
         self.title(APP_TITLE)
         self.geometry("1180x780")
         self.minsize(980, 680)
-        self.state("zoomed")
+        self.attributes("-zoomed", True)
 
         ctk.set_appearance_mode("light")
         ctk.set_default_color_theme("blue")
@@ -55,7 +55,9 @@ class ImageSofteningApp(ctk.CTk):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        barra = ctk.CTkScrollableFrame(self, width=270, corner_radius=0, fg_color="#e5e7eb")
+        barra = ctk.CTkScrollableFrame(
+            self, width=270, corner_radius=0, fg_color="#e5e7eb"
+        )
         barra.grid(row=0, column=0, sticky="nsew")
         self.grid_columnconfigure(0, minsize=270)
 
@@ -69,7 +71,9 @@ class ImageSofteningApp(ctk.CTk):
             text_color="#111827",
         ).pack(fill="x", padx=18, pady=(22, 12))
 
-        self.lbl_archivo = ctk.CTkLabel(barra, text="Sin imagen cargada", text_color="#4b5563", wraplength=220)
+        self.lbl_archivo = ctk.CTkLabel(
+            barra, text="Sin imagen cargada", text_color="#4b5563", wraplength=220
+        )
         self.lbl_archivo.pack(fill="x", padx=18, pady=(0, 12))
 
         ctk.CTkLabel(
@@ -89,23 +93,56 @@ class ImageSofteningApp(ctk.CTk):
         )
         self.chk_preprocesamiento.pack(fill="x", padx=18, pady=(0, 10))
 
-        self.slider_min, self.lbl_min = self._crear_slider(barra, "Minimo de normalizacion", 0, 255, 0, self._al_cambiar_preprocesamiento_slider)
-        self.slider_max, self.lbl_max = self._crear_slider(barra, "Maximo de normalizacion", 0, 255, 255, self._al_cambiar_preprocesamiento_slider)
-        self.slider_umbral, self.lbl_umbral = self._crear_slider(barra, "Umbral de binarizacion", 0, 255, 128, self._al_cambiar_preprocesamiento_slider)
+        self.slider_min, self.lbl_min = self._crear_slider(
+            barra,
+            "Minimo de normalizacion",
+            0,
+            255,
+            0,
+            self._al_cambiar_preprocesamiento_slider,
+        )
+        self.slider_max, self.lbl_max = self._crear_slider(
+            barra,
+            "Maximo de normalizacion",
+            0,
+            255,
+            255,
+            self._al_cambiar_preprocesamiento_slider,
+        )
+        self.slider_umbral, self.lbl_umbral = self._crear_slider(
+            barra,
+            "Umbral de binarizacion",
+            0,
+            255,
+            128,
+            self._al_cambiar_preprocesamiento_slider,
+        )
 
-        self.slider_ruido, self.lbl_ruido = self._crear_slider(barra, "Porcentaje de ruido", 0, 50, 30, self._actualizar_lbl_ruido)
+        self.slider_ruido, self.lbl_ruido = self._crear_slider(
+            barra, "Porcentaje de ruido", 0, 50, 30, self._actualizar_lbl_ruido
+        )
 
-        ctk.CTkLabel(barra, text="Filtro espacial", text_color="#111827", anchor="w").pack(fill="x", padx=18)
-        self.selector_filtro = ctk.CTkOptionMenu(barra, values=["Media", "Mediana", "Moda"])
+        ctk.CTkLabel(
+            barra, text="Filtro espacial", text_color="#111827", anchor="w"
+        ).pack(fill="x", padx=18)
+        self.selector_filtro = ctk.CTkOptionMenu(
+            barra, values=["Media", "Mediana", "Moda"]
+        )
         self.selector_filtro.set("Mediana")
         self.selector_filtro.pack(fill="x", padx=18, pady=(4, 10))
 
-        ctk.CTkLabel(barra, text="Tamano de mascara", text_color="#111827", anchor="w").pack(fill="x", padx=18)
-        self.selector_mascara = ctk.CTkOptionMenu(barra, values=["3x3", "5x5", "7x7", "9x9", "11x11"])
+        ctk.CTkLabel(
+            barra, text="Tamano de mascara", text_color="#111827", anchor="w"
+        ).pack(fill="x", padx=18)
+        self.selector_mascara = ctk.CTkOptionMenu(
+            barra, values=["3x3", "5x5", "7x7", "9x9", "11x11"]
+        )
         self.selector_mascara.set("3x3")
         self.selector_mascara.pack(fill="x", padx=18, pady=(4, 10))
 
-        self.slider_radio, self.lbl_radio = self._crear_slider(barra, "Radio de Fourier", 1, 300, 60, self._actualizar_lbl_radio)
+        self.slider_radio, self.lbl_radio = self._crear_slider(
+            barra, "Radio de Fourier", 1, 300, 60, self._actualizar_lbl_radio
+        )
 
         ctk.CTkButton(
             barra,
@@ -121,14 +158,18 @@ class ImageSofteningApp(ctk.CTk):
         self.barra_progreso.set(0)
         self.barra_progreso.pack(fill="x", padx=18, pady=(0, 4))
 
-        self.lbl_progreso = ctk.CTkLabel(barra, text="0 %", text_color="#4b5563", anchor="center")
+        self.lbl_progreso = ctk.CTkLabel(
+            barra, text="0 %", text_color="#4b5563", anchor="center"
+        )
         self.lbl_progreso.pack(fill="x", padx=18, pady=(0, 12))
 
         contenedor = ctk.CTkScrollableFrame(self, fg_color="#ffffff", corner_radius=0)
         contenedor.grid(row=0, column=1, sticky="nsew")
         contenedor.grid_columnconfigure((0, 1, 2), weight=1)
 
-        fila = self._crear_seccion(contenedor, "Seccion 1: Preprocesamiento opcional", 0)
+        fila = self._crear_seccion(
+            contenedor, "Seccion 1: Preprocesamiento opcional", 0
+        )
         self._crear_panel(contenedor, "original", "Imagen original RGB", fila, 0)
         self._crear_panel(contenedor, "gris", "Escala de grises", fila, 1)
         self._crear_panel(contenedor, "normalizada", "Imagen normalizada", fila, 2)
@@ -136,17 +177,28 @@ class ImageSofteningApp(ctk.CTk):
 
         fila = self._crear_seccion(contenedor, "Seccion 2: Ruido", fila + 2)
         self._crear_panel(contenedor, "base", "Imagen base del proceso", fila, 0)
-        self._crear_panel(contenedor, "ruido", "Imagen con ruido", fila, 1)
+        self._crear_panel(contenedor, "convolucion", "Imagen convolucionada", fila, 1)
+        self._crear_panel(contenedor, "ruido", "Imagen con ruido", fila, 2)
 
-        fila = self._crear_seccion(contenedor, "Seccion 3: Filtros espacial y frecuencia", fila + 1)
+        fila = self._crear_seccion(
+            contenedor, "Seccion 3: Filtros espacial y frecuencia", fila + 1
+        )
         self._crear_panel(contenedor, "espacial", "Filtro espacial", fila, 0)
         self._crear_panel(contenedor, "frecuencia", "Filtro pasa bajo", fila, 1)
         self._crear_panel(contenedor, "espectro", "Espectro FFT", fila, 2)
 
     def _crear_slider(self, padre, texto, desde, hasta, valor, comando):
-        etiqueta = ctk.CTkLabel(padre, text=f"{texto}: {int(valor)}", text_color="#111827", anchor="w")
+        etiqueta = ctk.CTkLabel(
+            padre, text=f"{texto}: {int(valor)}", text_color="#111827", anchor="w"
+        )
         etiqueta.pack(fill="x", padx=18)
-        slider = ctk.CTkSlider(padre, from_=desde, to=hasta, number_of_steps=max(1, int(hasta - desde)), command=comando)
+        slider = ctk.CTkSlider(
+            padre,
+            from_=desde,
+            to=hasta,
+            number_of_steps=max(1, int(hasta - desde)),
+            command=comando,
+        )
         slider.set(valor)
         slider.pack(fill="x", padx=18, pady=(2, 10))
         return slider, etiqueta
@@ -174,7 +226,13 @@ class ImageSofteningApp(ctk.CTk):
             anchor="center",
         ).grid(row=0, column=0, sticky="ew", padx=14, pady=(8, 6))
 
-        imagen_label = ctk.CTkLabel(panel, text="Sin imagen", text_color="#9ca3af", fg_color="#ffffff", corner_radius=0)
+        imagen_label = ctk.CTkLabel(
+            panel,
+            text="Sin imagen",
+            text_color="#9ca3af",
+            fg_color="#ffffff",
+            corner_radius=0,
+        )
         imagen_label.grid(row=1, column=0, padx=14, pady=(0, 18), sticky="ew")
         self.paneles[clave] = imagen_label
 
@@ -185,9 +243,15 @@ class ImageSofteningApp(ctk.CTk):
         self.lbl_radio.configure(text=f"Radio de Fourier: {int(float(valor))} px")
 
     def _al_cambiar_preprocesamiento_slider(self, valor):
-        self.lbl_min.configure(text=f"Minimo de normalizacion: {int(self.slider_min.get())}")
-        self.lbl_max.configure(text=f"Maximo de normalizacion: {int(self.slider_max.get())}")
-        self.lbl_umbral.configure(text=f"Umbral de binarizacion: {int(self.slider_umbral.get())}")
+        self.lbl_min.configure(
+            text=f"Minimo de normalizacion: {int(self.slider_min.get())}"
+        )
+        self.lbl_max.configure(
+            text=f"Maximo de normalizacion: {int(self.slider_max.get())}"
+        )
+        self.lbl_umbral.configure(
+            text=f"Umbral de binarizacion: {int(self.slider_umbral.get())}"
+        )
         if self.imagen_color is not None:
             self.actualizar_preprocesamiento()
 
@@ -203,7 +267,9 @@ class ImageSofteningApp(ctk.CTk):
 
     def _mostrar_en_panel(self, clave, imagen_pil):
         imagen_panel = preparar_imagen_panel(imagen_pil)
-        imagen_ctk = ctk.CTkImage(light_image=imagen_panel, dark_image=imagen_panel, size=PANEL_IMAGE_SIZE)
+        imagen_ctk = ctk.CTkImage(
+            light_image=imagen_panel, dark_image=imagen_panel, size=PANEL_IMAGE_SIZE
+        )
         anterior = self.ctk_images.get(clave)
         if anterior is not None:
             self._imagenes_recientes.append(anterior)
@@ -300,6 +366,7 @@ class ImageSofteningApp(ctk.CTk):
             self._mostrar_matriz("espacial", resultados["espacial"])
             self._mostrar_matriz("frecuencia", resultados["frecuencia"])
             self._mostrar_matriz("espectro", resultados["espectro"])
+            self._mostrar_matriz("convolucion", resultados["convolucion"])
             self._actualizar_progreso(1)
         except Exception as exc:
             messagebox.showerror("Error", f"No se pudo procesar la imagen:\n{exc}")

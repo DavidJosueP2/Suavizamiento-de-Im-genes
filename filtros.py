@@ -60,11 +60,11 @@ def aplicar_padding_replicado(imagen, tamano_mascara):
     alto, ancho = imagen.shape
     padded = np.zeros((alto + 2 * radio, ancho + 2 * radio), dtype=np.uint8)
 
-    padded[radio:radio + alto, radio:radio + ancho] = imagen
-    padded[:radio, radio:radio + ancho] = imagen[0:1, :]
-    padded[radio + alto:, radio:radio + ancho] = imagen[alto - 1:alto, :]
-    padded[:, :radio] = padded[:, radio:radio + 1]
-    padded[:, radio + ancho:] = padded[:, radio + ancho - 1:radio + ancho]
+    padded[radio : radio + alto, radio : radio + ancho] = imagen
+    padded[:radio, radio : radio + ancho] = imagen[0:1, :]
+    padded[radio + alto :, radio : radio + ancho] = imagen[alto - 1 : alto, :]
+    padded[:, :radio] = padded[:, radio : radio + 1]
+    padded[:, radio + ancho :] = padded[:, radio + ancho - 1 : radio + ancho]
 
     return padded
 
@@ -87,7 +87,9 @@ def filtro_media(imagen, tamano_mascara):
 def _ventanas_aplanadas(imagen, tamano_mascara):
     padded = aplicar_padding_replicado(imagen, tamano_mascara)
     ventanas = sliding_window_view(padded, (tamano_mascara, tamano_mascara))
-    return ventanas.reshape(imagen.shape[0], imagen.shape[1], tamano_mascara * tamano_mascara)
+    return ventanas.reshape(
+        imagen.shape[0], imagen.shape[1], tamano_mascara * tamano_mascara
+    )
 
 
 def filtro_mediana(imagen, tamano_mascara):
@@ -150,9 +152,13 @@ def aplicar_filtro_espacial(imagen, tipo_filtro, tamano_mascara):
         raise ValueError("El tamano de mascara debe ser impar.")
 
     if tipo_filtro == "Media":
-        return aplicar_por_canal(imagen, lambda canal: filtro_media(canal, tamano_mascara))
+        return aplicar_por_canal(
+            imagen, lambda canal: filtro_media(canal, tamano_mascara)
+        )
     if tipo_filtro == "Mediana":
-        return aplicar_por_canal(imagen, lambda canal: filtro_mediana(canal, tamano_mascara))
+        return aplicar_por_canal(
+            imagen, lambda canal: filtro_mediana(canal, tamano_mascara)
+        )
     return aplicar_por_canal(imagen, lambda canal: filtro_moda(canal, tamano_mascara))
 
 
@@ -240,6 +246,13 @@ def actualizar_preprocesamiento(imagen_rgb, minimo, maximo, umbral):
     }
 
 
+KERNEL_DEFAULT = [
+    [0, -1, 0],
+    [-1, 5, -1],
+    [0, -1, 0],
+]
+
+
 def procesar_imagen(
     imagen,
     porcentaje_ruido,
@@ -251,25 +264,36 @@ def procesar_imagen(
     maximo_norm=255,
     umbral=128,
     progreso=None,
+    kernel=KERNEL_DEFAULT,
 ):
     if progreso:
         progreso(0.05)
 
-    preprocesamiento = actualizar_preprocesamiento(imagen, minimo_norm, maximo_norm, umbral)
+    preprocesamiento = actualizar_preprocesamiento(
+        imagen, minimo_norm, maximo_norm, umbral
+    )
     base_proceso = preprocesamiento["binaria"] if aplicar_preprocesamiento else imagen
     if progreso:
         progreso(0.20)
-
-    imagen_ruido = agregar_ruido_sal_pimienta(base_proceso, porcentaje_ruido)
+    kernel_generado = generar_kernel(tamano_mascara)
+    imagen_convolucion = aplicar_por_canal(
+        base_proceso,
+        lambda canal: convolucion_manual(canal, kernel_generado),
+    )
+    imagen_ruido = agregar_ruido_sal_pimienta(imagen_convolucion, porcentaje_ruido)
     if progreso:
         progreso(0.40)
 
-    resultado_espacial = aplicar_filtro_espacial(imagen_ruido, tipo_filtro, tamano_mascara)
+    resultado_espacial = aplicar_filtro_espacial(
+        imagen_ruido, tipo_filtro, tamano_mascara
+    )
     if progreso:
         progreso(0.65)
 
     canal_espectro = _imagen_base_espectro(imagen_ruido)
-    espectro, resultado_frecuencia, mascara = _aplicar_frecuencia_canal(canal_espectro, radio_fourier)
+    espectro, resultado_frecuencia, mascara = _aplicar_frecuencia_canal(
+        canal_espectro, radio_fourier
+    )
     espectro = _espectro_con_mascara(espectro, mascara)
 
     if imagen_ruido.ndim == 3:
@@ -284,11 +308,35 @@ def procesar_imagen(
     return {
         "preprocesamiento": preprocesamiento,
         "base_proceso": base_proceso,
+        "convolucion": imagen_convolucion,  # 👈 NUEVO
         "ruido": imagen_ruido,
         "espacial": resultado_espacial,
         "espectro": espectro,
         "frecuencia": resultado_frecuencia,
     }
+
+
+def convolucion_manual(imagen, kernel):
+    kernel = np.array(kernel, dtype=np.float32)
+    k = kernel.shape[0]
+    radio = k // 2
+
+    padded = aplicar_padding_replicado(imagen, k)
+    salida = np.zeros_like(imagen, dtype=np.float32)
+
+    for i in range(imagen.shape[0]):
+        for j in range(imagen.shape[1]):
+            region = padded[i : i + k, j : j + k]
+            salida[i, j] = np.sum(region * kernel)
+
+    return _normalizar_visual(salida)
+
+
+def generar_kernel(tamano):
+    k = int(tamano)
+    kernel = np.ones((k, k), dtype=np.float32)
+    kernel /= k * k
+    return kernel
 
 
 def guardar_resultado(imagen, ruta_salida):
