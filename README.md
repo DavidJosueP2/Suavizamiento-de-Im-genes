@@ -6,15 +6,15 @@ Aplicacion de escritorio en Python para procesamiento digital de imagenes a colo
 
 - Carga una imagen desde el computador.
 - Trabaja con la imagen RGB a color.
-- Permite activar preprocesamiento: escala de grises, normalizacion min-max y binarizacion.
+- Permite activar preprocesamiento: escala de grises y normalizacion min-max como entrada del flujo.
+- Muestra histogramas original y normalizado.
 - Agrega ruido sal y pimienta configurable sobre la imagen base del proceso.
-- Aplica filtros espaciales manuales por canal: media, mediana y moda.
+- Aplica filtros espaciales por canal: media, mediana, moda, high-pass y Sobel.
 - Permite seleccionar mascaras impares: 3x3, 5x5, 7x7, 9x9 y 11x11.
-- Calcula la FFT 2D centrada de la imagen con ruido.
-- Muestra el espectro FFT con mascara circular pasa bajo.
-- Aplica una mascara circular pasa bajas mediante un radio configurable.
+- Calcula la FFT 2D centrada y permite filtro pasa bajas o pasa altas.
+- Muestra espectro original, espectro filtrado e imagen reconstruida.
 - Reconstruye la imagen filtrada con `ifftshift` e `ifft2`.
-- Muestra la imagen original, preprocesamiento, ruido, resultado espacial, espectro y resultado en frecuencia.
+- Aplica Canny con histeresis y produce la imagen final binaria.
 
 ## Instalacion
 
@@ -30,15 +30,16 @@ python app.py
 
 ## Archivos
 
-- `app.py`: interfaz grafica y barra de progreso.
-- `filtros.py`: carga, preprocesamiento, ruido, filtros espaciales por canal y filtro pasa bajas en Fourier.
+- `app.py`: interfaz grafica con opciones por seccion y barra de progreso.
+- `filtros.py`: carga, preprocesamiento, ruido, filtros espaciales, Fourier y Canny.
 
 ## Restricciones implementadas
 
 - Los filtros espaciales estan programados manualmente.
+- Sobel, high-pass, Canny e histeresis estan implementados en el proyecto.
 - No se usan funciones listas como `cv2.blur`, `cv2.medianBlur`, `scipy.ndimage`, `skimage.filters` o `PIL.ImageFilter`.
 - El padding se hace manualmente por replicacion del borde.
 - La normalizacion min-max y la binarizacion se implementan manualmente.
 - La Transformada de Fourier se calcula con `np.fft.fft2` y `np.fft.fftshift`.
 - La reconstruccion en frecuencia usa `np.fft.ifftshift` y `np.fft.ifft2`.
-- No se usan funciones predefinidas de filtrado en frecuencia; la mascara circular se implementa manualmente.
+- No se usan funciones predefinidas de filtrado en frecuencia.
