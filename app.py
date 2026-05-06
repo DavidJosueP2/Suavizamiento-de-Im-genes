@@ -35,7 +35,7 @@ class ImageSofteningApp(ctk.CTk):
         self.title(APP_TITLE)
         self.geometry("1180x780")
         self.minsize(980, 680)
-        self.attributes("-zoomed", True)
+        self._maximizar_ventana()
 
         ctk.set_appearance_mode("light")
         ctk.set_default_color_theme("blue")
@@ -49,6 +49,12 @@ class ImageSofteningApp(ctk.CTk):
         self.preprocesamiento_activo = ctk.BooleanVar(value=False)
 
         self._crear_interfaz()
+
+    def _maximizar_ventana(self):
+        try:
+            self.state("zoomed")
+        except Exception:
+            pass
 
     def _crear_interfaz(self):
         self.grid_columnconfigure(0, weight=0)
