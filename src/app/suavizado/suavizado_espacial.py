@@ -1,5 +1,5 @@
 import numpy as np
-from src.app.utils import (
+from src.app.utils.utils import (
     aplicar_por_canal,
     ventanas_aplanadas,
     aplicar_padding_replicado,

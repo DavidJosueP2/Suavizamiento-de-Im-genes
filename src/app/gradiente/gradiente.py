@@ -1,5 +1,5 @@
 import numpy as np
-from src.app.utils import normalizar_visual, convertir_grises, convolucion_cruda
+from src.app.utils.utils import normalizar_visual, convertir_grises, convolucion_cruda
 
 
 def obtener_kernels_sobel():

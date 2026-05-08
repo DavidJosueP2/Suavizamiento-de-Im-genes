@@ -1,5 +1,5 @@
 import numpy as np
-from src.app.utils import (
+from src.app.utils.utils import (
     normalizar_visual,
     aplicar_por_canal,
     convertir_grises,

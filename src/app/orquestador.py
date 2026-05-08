@@ -1,10 +1,10 @@
 import numpy as np
 from PIL import Image
-from src.app.utils import convertir_grises
-from src.app.suavizado import aplicar_suavizado
-from src.app.acentuado import aplicar_acentuado
-from src.app.gradiente import reconocer_bordes_gradiente_direccional
-from src.app.binarizacion import binarizar_imagen
+from src.app.utils.utils import convertir_grises
+from src.app.suavizado.suavizado import aplicar_suavizado
+from src.app.acentuado.acentuado import aplicar_acentuado
+from src.app.gradiente.gradiente import reconocer_bordes_gradiente_direccional
+from src.app.utils.binarizacion import binarizar_imagen
 from src.app.regiones import (
     detectar_regiones,
     detectar_bounding_box,

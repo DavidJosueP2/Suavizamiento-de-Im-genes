@@ -3,7 +3,6 @@ from numpy.lib.stride_tricks import sliding_window_view
 
 
 def normalizar_visual(imagen):
-    """Normaliza una imagen de punto flotante a rango 0-255 uint8."""
     minimo = imagen.min()
     maximo = imagen.max()
     if maximo == minimo:

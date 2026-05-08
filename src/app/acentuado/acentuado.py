@@ -1,6 +1,5 @@
 import numpy as np
-from src.app.utils import (
-    normalizar_visual,
+from src.app.utils.utils import (
     aplicar_por_canal,
     convertir_grises,
     convolucion_cruda,
@@ -26,7 +25,7 @@ def laplaciano_8_vecinos(imagen):
 
 
 def crear_mascara_pasa_alto(forma, radio):
-    from src.app.suavizado_frecuencia import crear_mascara_pasa_bajo
+    from app.suavizado.suavizado_frecuencia import crear_mascara_pasa_bajo
 
     return 1.0 - crear_mascara_pasa_bajo(forma, radio)
 
@@ -47,7 +46,7 @@ def reconstruir_respuesta_ifft(transformada_filtrada):
 
 
 def aplicar_pasa_alto_frecuencia_acentuado(imagen, radio, tipo_filtro="ideal"):
-    from src.app.suavizado_frecuencia import (
+    from app.suavizado.suavizado_frecuencia import (
         calcular_fft,
         calcular_espectro_fft,
         visualizar_mascara,

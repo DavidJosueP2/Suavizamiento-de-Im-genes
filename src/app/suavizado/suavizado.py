@@ -1,5 +1,5 @@
-from src.app.suavizado_espacial import aplicar_filtro_espacial
-from src.app.suavizado_frecuencia import aplicar_filtro_frecuencia_completo
+from src.app.suavizado.suavizado_espacial import aplicar_filtro_espacial
+from src.app.suavizado.suavizado_frecuencia import aplicar_filtro_frecuencia_completo
 
 
 def aplicar_suavizado(imagen, dominio, tipo_suavizado, tamano_mascara, radio):
