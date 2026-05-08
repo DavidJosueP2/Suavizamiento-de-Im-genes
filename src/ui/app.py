@@ -238,7 +238,7 @@ class ImageSofteningApp(ctk.CTk):
         )
         self.selector_dominio_acentuacion.configure(command=self._al_cambiar_dominio_acentuacion)
         self.selector_acentuacion, self.ctrl_acentuacion = self._crear_selector(
-            controles, "Filtro seleccionable", ["Laplaciano"], "Laplaciano"
+            controles, "Filtro seleccionable", ["Laplaciano", "Laplaciano 8 vecinos"], "Laplaciano"
         )
 
         self.slider_radio_acentuacion, self.lbl_radio_acentuacion, self.ctrl_radio_acentuacion = self._crear_slider(
@@ -258,10 +258,23 @@ class ImageSofteningApp(ctk.CTk):
             controles, "Metodo", ["Prewitt", "Sobel"], "Prewitt"
         )
 
-        self._crear_panel("gradiente_x", "Gradiente X", fila + 1, 0)
-        self._crear_panel("gradiente_y", "Gradiente Y", fila + 1, 1)
-        self._crear_panel("gradiente_magnitud", "Magnitud del gradiente", fila + 1, 2)
-        return fila + 2
+        self._crear_panel("gradiente_0", "Gradiente 0°", fila + 1, 0)
+
+        self._crear_panel("gradiente_45", "Gradiente 45°", fila + 1, 1)
+
+        self._crear_panel("gradiente_90", "Gradiente 90°", fila + 1, 2)
+
+        self._crear_panel("gradiente_135", "Gradiente 135°", fila + 1, 3)
+
+        self._crear_panel(
+            "gradiente_magnitud",
+            "Magnitud total",
+            fila + 2,
+            0,
+            columnspan=4,
+            image_size=(900, 220),
+        )
+        return fila + 4
 
     def _crear_seccion_regiones(self, fila):
         fila = self._crear_titulo_seccion("Seccion 6: Binarizacion y deteccion de regiones", fila)
@@ -377,7 +390,7 @@ class ImageSofteningApp(ctk.CTk):
         self._mostrar_control(self.ctrl_suavizado, True)
         self._mostrar_control(self.ctrl_mascara, not suavizado_frecuencia)
         self._mostrar_control(self.ctrl_radio_suavizado, suavizado_frecuencia)
-        self._mostrar_control(self.ctrl_acentuacion, not acentuacion_frecuencia)
+        self._mostrar_control(self.ctrl_acentuacion, True)
         self._mostrar_control(self.ctrl_radio_acentuacion, acentuacion_frecuencia)
 
     def _al_cambiar_dominio_suavizado(self, valor):
@@ -391,10 +404,10 @@ class ImageSofteningApp(ctk.CTk):
 
     def _al_cambiar_dominio_acentuacion(self, valor):
         if valor == "Frecuencia":
-            self.selector_acentuacion.configure(values=["Pasa altas"])
+            self.selector_acentuacion.configure(values=["Pasa altas", "Pasa altas gausiano"])
             self.selector_acentuacion.set("Pasa altas")
         else:
-            self.selector_acentuacion.configure(values=["Laplaciano"])
+            self.selector_acentuacion.configure(values=["Laplaciano", "Laplaciano 8 vecinos"])
             self.selector_acentuacion.set("Laplaciano")
         self._actualizar_paneles_por_dominio()
 
@@ -514,7 +527,7 @@ class ImageSofteningApp(ctk.CTk):
                 int(self.slider_radio_suavizado.get()),
                 dominio_suavizado=self.selector_dominio_suavizado.get(),
                 dominio_acentuacion=self.selector_dominio_acentuacion.get(),
-                tipo_acentuacion="Laplaciano",
+                tipo_acentuacion=self.selector_acentuacion.get(),
                 radio_acentuacion=int(self.slider_radio_acentuacion.get()),
                 metodo_gradiente=self.selector_gradiente.get(),
                 aplicar_preprocesamiento=self.preprocesamiento_activo.get(),
@@ -540,8 +553,10 @@ class ImageSofteningApp(ctk.CTk):
             if resultados["espectro_acentuacion"] is not None:
                 self._mostrar_matriz("espectro_acentuacion", resultados["espectro_acentuacion"])
                 self._mostrar_matriz("mascara_acentuacion", resultados["mascara_acentuacion"])
-            self._mostrar_matriz("gradiente_x", resultados["gradiente_x"])
-            self._mostrar_matriz("gradiente_y", resultados["gradiente_y"])
+            self._mostrar_matriz("gradiente_0", resultados["gradiente_0"])
+            self._mostrar_matriz("gradiente_45", resultados["gradiente_45"])
+            self._mostrar_matriz("gradiente_90", resultados["gradiente_90"])
+            self._mostrar_matriz("gradiente_135", resultados["gradiente_135"])            
             self._mostrar_matriz("gradiente_magnitud", resultados["gradiente_magnitud"])
             self._mostrar_matriz("final_binaria", resultados["final_binaria"])
             self._mostrar_matriz("regiones_numeradas", resultados["regiones_numeradas"])

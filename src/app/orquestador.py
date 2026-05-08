@@ -3,7 +3,7 @@ from PIL import Image
 from src.app.utils import convertir_grises
 from src.app.suavizado import aplicar_suavizado
 from src.app.acentuado import aplicar_acentuado
-from src.app.gradiente import reconocer_bordes_gradiente
+from src.app.gradiente import reconocer_bordes_gradiente_direccional
 from src.app.binarizacion import binarizar_imagen
 from src.app.regiones import (
     detectar_regiones,
@@ -97,7 +97,13 @@ def procesar_imagen(
     if progreso:
         progreso(0.75)
 
-    gx, gy, grad_mag = reconocer_bordes_gradiente(acentuacion, metodo_gradiente)
+    gradientes = reconocer_bordes_gradiente_direccional(acentuacion, metodo_gradiente)
+    grad_0 = gradientes["0"]
+    grad_45 = gradientes["45"]
+    grad_90 = gradientes["90"]
+    grad_135 = gradientes["135"]
+    grad_mag = gradientes["magnitud"]
+
     final_binaria = binarizar_imagen(grad_mag, umbral_binario)
     regiones = detectar_regiones(final_binaria, min_area=min_area_region)
     bounding_box = detectar_bounding_box(final_binaria, min_area=min_area_region)
@@ -119,8 +125,10 @@ def procesar_imagen(
         "acentuacion": acentuacion,
         "espectro_acentuacion": espectro_a,
         "mascara_acentuacion": mascara_a,
-        "gradiente_x": gx,
-        "gradiente_y": gy,
+        "gradiente_0": grad_0,
+        "gradiente_45": grad_45,
+        "gradiente_90": grad_90,
+        "gradiente_135": grad_135,
         "gradiente_magnitud": grad_mag,
         "final_binaria": final_binaria,
         "regiones": regiones,
