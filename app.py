@@ -260,8 +260,10 @@ class ImageSofteningApp(ctk.CTk):
 
         self._crear_panel("gradiente_x", "Gradiente X", fila + 1, 0)
         self._crear_panel("gradiente_y", "Gradiente Y", fila + 1, 1)
-        self._crear_panel("gradiente_magnitud", "Magnitud del gradiente", fila + 1, 2)
-        return fila + 2
+        self._crear_panel("gradiente_diagonal_45", "Gradiente diagonal 45", fila + 1, 2)
+        self._crear_panel("gradiente_diagonal_135", "Gradiente diagonal 135", fila + 1, 3)
+        self._crear_panel("gradiente_magnitud", "Magnitud combinada", fila + 2, 0)
+        return fila + 3
 
     def _crear_seccion_regiones(self, fila):
         fila = self._crear_titulo_seccion("Seccion 6: Binarizacion y deteccion de regiones", fila)
@@ -542,6 +544,8 @@ class ImageSofteningApp(ctk.CTk):
                 self._mostrar_matriz("mascara_acentuacion", resultados["mascara_acentuacion"])
             self._mostrar_matriz("gradiente_x", resultados["gradiente_x"])
             self._mostrar_matriz("gradiente_y", resultados["gradiente_y"])
+            self._mostrar_matriz("gradiente_diagonal_45", resultados["gradiente_diagonal_45"])
+            self._mostrar_matriz("gradiente_diagonal_135", resultados["gradiente_diagonal_135"])
             self._mostrar_matriz("gradiente_magnitud", resultados["gradiente_magnitud"])
             self._mostrar_matriz("final_binaria", resultados["final_binaria"])
             self._mostrar_matriz("regiones_numeradas", resultados["regiones_numeradas"])

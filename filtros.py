@@ -36,6 +36,61 @@ def binarizar_imagen(imagen, umbral):
     return np.where(imagen >= int(umbral), 255, 0).astype(np.uint8)
 
 
+def seleccionar_mascara_objeto(imagen_binaria):
+    imagen_binaria = imagen_binaria.astype(np.uint8)
+    blancos = imagen_binaria > 0
+    negros = ~blancos
+    return negros if negros.sum() <= blancos.sum() else blancos
+
+
+def estimar_angulo_inclinacion(imagen_binaria):
+    mascara = seleccionar_mascara_objeto(imagen_binaria)
+    filas, columnas = np.where(mascara)
+
+    if filas.size < 20:
+        return 0.0
+
+    puntos = np.column_stack((columnas.astype(np.float32), filas.astype(np.float32)))
+    puntos -= puntos.mean(axis=0)
+    covarianza = np.cov(puntos, rowvar=False)
+    valores, vectores = np.linalg.eigh(covarianza)
+    vector_principal = vectores[:, int(np.argmax(valores))]
+    angulo = np.degrees(np.arctan2(vector_principal[1], vector_principal[0]))
+
+    if angulo < -45:
+        angulo += 180
+    elif angulo > 45:
+        angulo -= 180
+
+    if abs(angulo) > 8:
+        return 0.0
+    return float(angulo)
+
+
+def rotar_matriz(imagen, angulo, binaria=False):
+    if abs(angulo) < 0.5:
+        return imagen.astype(np.uint8)
+
+    if imagen.ndim == 2:
+        modo = "L"
+        pil = Image.fromarray(imagen.astype(np.uint8), mode=modo)
+    else:
+        modo = "RGB"
+        pil = Image.fromarray(imagen.astype(np.uint8), mode=modo)
+
+    remuestreo = Image.Resampling.NEAREST if binaria else Image.Resampling.BICUBIC
+    relleno = 0 if binaria else 0
+    rotada = pil.rotate(angulo, resample=remuestreo, expand=True, fillcolor=relleno)
+    return np.array(rotada, dtype=np.uint8)
+
+
+def corregir_inclinacion_para_regiones(imagen_base, imagen_binaria):
+    angulo = estimar_angulo_inclinacion(imagen_binaria)
+    imagen_corregida = rotar_matriz(imagen_base, -angulo, binaria=False)
+    binaria_corregida = rotar_matriz(imagen_binaria, -angulo, binaria=True)
+    return imagen_corregida, binaria_corregida, angulo
+
+
 def detectar_bounding_box(imagen_binaria):
     regiones = detectar_regiones(imagen_binaria, min_area=100)
     if not regiones:
@@ -53,10 +108,7 @@ def detectar_bounding_box(imagen_binaria):
 def detectar_regiones(imagen_binaria, min_area=100):
     imagen_binaria = imagen_binaria.astype(np.uint8)
     alto, ancho = imagen_binaria.shape
-    blancos = imagen_binaria > 0
-    negros = ~blancos
-
-    mascara = negros if negros.sum() <= blancos.sum() else blancos
+    mascara = seleccionar_mascara_objeto(imagen_binaria)
     visitado = np.zeros((alto, ancho), dtype=bool)
     regiones = []
 
@@ -70,10 +122,12 @@ def detectar_regiones(imagen_binaria, min_area=100):
             min_fila = max_fila = fila
             min_columna = max_columna = columna
             area = 0
+            pixeles = []
 
             while pila:
                 actual_fila, actual_columna = pila.pop()
                 area += 1
+                pixeles.append((actual_fila, actual_columna))
                 min_fila = min(min_fila, actual_fila)
                 max_fila = max(max_fila, actual_fila)
                 min_columna = min(min_columna, actual_columna)
@@ -97,15 +151,35 @@ def detectar_regiones(imagen_binaria, min_area=100):
             if area < min_area:
                 continue
 
+            alto_region = int(max_fila - min_fila + 1)
+            ancho_region = int(max_columna - min_columna + 1)
+            relacion = ancho_region / max(alto_region, 1)
+            ocupa_mucho_ancho = ancho_region > ancho * 0.28
+            ocupa_mucho_alto = alto_region > alto * 0.85
+
+            if ocupa_mucho_alto:
+                continue
+            if ocupa_mucho_ancho and relacion > 2.4:
+                continue
+            if ancho_region > ancho * 0.75 and alto_region > alto * 0.12:
+                continue
+            if ancho_region > ancho * 0.50 and alto_region > alto * 0.25:
+                continue
+
+            mascara_region = np.zeros((alto_region, ancho_region), dtype=bool)
+            for pixel_fila, pixel_columna in pixeles:
+                mascara_region[pixel_fila - min_fila, pixel_columna - min_columna] = True
+
             regiones.append(
                 {
                     "area": int(area),
                     "x": int(min_columna),
                     "y": int(min_fila),
-                    "width": int(max_columna - min_columna + 1),
-                    "height": int(max_fila - min_fila + 1),
+                    "width": ancho_region,
+                    "height": alto_region,
                     "centroid_x": float((min_columna + max_columna) / 2),
                     "centroid_y": float((min_fila + max_fila) / 2),
+                    "mask": mascara_region,
                 }
             )
 
@@ -113,6 +187,43 @@ def detectar_regiones(imagen_binaria, min_area=100):
     for indice, region in enumerate(regiones, start=1):
         region["label"] = indice
     return regiones
+
+
+def filtrar_regiones_internas(regiones):
+    filtradas = []
+
+    for indice, region in enumerate(regiones):
+        x1 = region["x"]
+        y1 = region["y"]
+        x2 = x1 + region["width"] - 1
+        y2 = y1 + region["height"] - 1
+        area = region["area"]
+        es_interna = False
+
+        for otra_indice, otra in enumerate(regiones):
+            if otra_indice == indice:
+                continue
+
+            ox1 = otra["x"]
+            oy1 = otra["y"]
+            ox2 = ox1 + otra["width"] - 1
+            oy2 = oy1 + otra["height"] - 1
+
+            contiene = x1 >= ox1 and y1 >= oy1 and x2 <= ox2 and y2 <= oy2
+            mucho_mas_grande = otra["area"] >= area * 1.8
+            similar_al_centro = (
+                abs(region["centroid_x"] - otra["centroid_x"]) <= max(otra["width"] * 0.30, 6)
+                and abs(region["centroid_y"] - otra["centroid_y"]) <= max(otra["height"] * 0.35, 6)
+            )
+
+            if contiene and mucho_mas_grande and similar_al_centro:
+                es_interna = True
+                break
+
+        if not es_interna:
+            filtradas.append(region)
+
+    return filtradas
 
 
 def dibujar_bounding_box(imagen, bounding_box):
@@ -180,11 +291,52 @@ def recortar_regiones(imagen, regiones, margen=8):
     alto, ancho = base.shape[:2]
     recortes = []
     for region in regiones:
-        x1 = max(0, int(region["x"]) - margen)
-        y1 = max(0, int(region["y"]) - margen)
-        x2 = min(ancho, int(region["x"] + region["width"]) + margen)
-        y2 = min(alto, int(region["y"] + region["height"]) + margen)
+        region_x = int(region["x"])
+        region_y = int(region["y"])
+        region_ancho = int(region["width"])
+        region_alto = int(region["height"])
+        x1 = max(0, region_x - margen)
+        y1 = max(0, region_y - margen)
+        x2 = min(ancho, region_x + region_ancho + margen)
+        y2 = min(alto, region_y + region_alto + margen)
         recorte = base[y1:y2, x1:x2].copy()
+
+        if "mask" in region:
+            mascara = np.zeros((y2 - y1, x2 - x1), dtype=bool)
+            offset_y = region_y - y1
+            offset_x = region_x - x1
+            mascara[
+                offset_y : offset_y + region_alto,
+                offset_x : offset_x + region_ancho,
+            ] = region["mask"]
+
+            for subregion in regiones:
+                if subregion is region or subregion["area"] >= region["area"]:
+                    continue
+
+                sx1 = int(subregion["x"])
+                sy1 = int(subregion["y"])
+                sx2 = sx1 + int(subregion["width"])
+                sy2 = sy1 + int(subregion["height"])
+
+                contenida = (
+                    sx1 >= region_x
+                    and sy1 >= region_y
+                    and sx2 <= region_x + region_ancho
+                    and sy2 <= region_y + region_alto
+                )
+                if not contenida or "mask" not in subregion:
+                    continue
+
+                sub_offset_y = sy1 - y1
+                sub_offset_x = sx1 - x1
+                mascara[
+                    sub_offset_y:sub_offset_y + int(subregion["height"]),
+                    sub_offset_x:sub_offset_x + int(subregion["width"]),
+                ] |= subregion["mask"]
+
+            recorte[~mascara] = 0
+
         recortes.append({"region": region, "imagen": recorte})
 
     return recortes
@@ -530,14 +682,29 @@ def aplicar_pasa_alto_frecuencia_acentuado(imagen, radio):
 def reconocer_bordes_gradiente(imagen, metodo):
     gris = convertir_grises(imagen)
     if metodo == "Sobel":
-        gx = convolucion_cruda(gris, [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-        gy = convolucion_cruda(gris, [[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
+        kernel_x = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
+        kernel_y = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
+        kernel_diagonal_45 = [[0, 1, 2], [-1, 0, 1], [-2, -1, 0]]
+        kernel_diagonal_135 = [[2, 1, 0], [1, 0, -1], [0, -1, -2]]
     else:
-        gx = convolucion_cruda(gris, [[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]])
-        gy = convolucion_cruda(gris, [[-1, -1, -1], [0, 0, 0], [1, 1, 1]])
+        kernel_x = [[-1, 0, 1], [-1, 0, 1], [-1, 0, 1]]
+        kernel_y = [[-1, -1, -1], [0, 0, 0], [1, 1, 1]]
+        kernel_diagonal_45 = [[0, 1, 1], [-1, 0, 1], [-1, -1, 0]]
+        kernel_diagonal_135 = [[1, 1, 0], [1, 0, -1], [0, -1, -1]]
 
-    magnitud = np.sqrt(gx * gx + gy * gy)
-    return _normalizar_visual(gx), _normalizar_visual(gy), _normalizar_visual(magnitud)
+    gx = convolucion_cruda(gris, kernel_x)
+    gy = convolucion_cruda(gris, kernel_y)
+    g45 = convolucion_cruda(gris, kernel_diagonal_45)
+    g135 = convolucion_cruda(gris, kernel_diagonal_135)
+
+    magnitud = np.sqrt(gx * gx + gy * gy + g45 * g45 + g135 * g135)
+    return (
+        _normalizar_visual(gx),
+        _normalizar_visual(gy),
+        _normalizar_visual(g45),
+        _normalizar_visual(g135),
+        _normalizar_visual(magnitud),
+    )
 
 
 def generar_kernel(tamano):
@@ -595,15 +762,34 @@ def procesar_imagen(
     if progreso:
         progreso(0.75)
 
-    gradiente_x, gradiente_y, gradiente_magnitud = reconocer_bordes_gradiente(
+    (
+        gradiente_x,
+        gradiente_y,
+        gradiente_diagonal_45,
+        gradiente_diagonal_135,
+        gradiente_magnitud,
+    ) = reconocer_bordes_gradiente(
         acentuacion, metodo_gradiente
     )
     final_binaria = binarizar_imagen(gradiente_magnitud, umbral_binario)
-    regiones = detectar_regiones(final_binaria, min_area=min_area_region)
-    bounding_box = detectar_bounding_box(final_binaria)
-    imagen_bounding_box = dibujar_bounding_box(gradiente_magnitud, bounding_box)
-    regiones_numeradas = dibujar_regiones_numeradas(gradiente_magnitud, regiones)
-    recortes_regiones = recortar_regiones(gradiente_magnitud, regiones)
+    imagen_regiones, final_binaria_corregida, angulo_correccion = corregir_inclinacion_para_regiones(
+        gradiente_magnitud, final_binaria
+    )
+    regiones = detectar_regiones(final_binaria_corregida, min_area=min_area_region)
+    if regiones:
+        region_principal = max(regiones, key=lambda item: item["area"])
+        bounding_box = (
+            region_principal["x"],
+            region_principal["y"],
+            region_principal["x"] + region_principal["width"] - 1,
+            region_principal["y"] + region_principal["height"] - 1,
+        )
+    else:
+        bounding_box = None
+
+    imagen_bounding_box = dibujar_bounding_box(imagen_regiones, bounding_box)
+    regiones_numeradas = dibujar_regiones_numeradas(imagen_regiones, regiones)
+    recortes_regiones = recortar_regiones(imagen_regiones, regiones)
     if progreso:
         progreso(1.0)
 
@@ -622,9 +808,12 @@ def procesar_imagen(
         "mascara_acentuacion": mascara_acentuacion,
         "gradiente_x": gradiente_x,
         "gradiente_y": gradiente_y,
+        "gradiente_diagonal_45": gradiente_diagonal_45,
+        "gradiente_diagonal_135": gradiente_diagonal_135,
         "gradiente_magnitud": gradiente_magnitud,
-        "final_binaria": final_binaria,
+        "final_binaria": final_binaria_corregida,
         "regiones": regiones,
+        "angulo_correccion": angulo_correccion,
         "bounding_box": bounding_box,
         "imagen_bounding_box": imagen_bounding_box,
         "regiones_numeradas": regiones_numeradas,
